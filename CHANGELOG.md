@@ -35,3 +35,11 @@ Initial release. Contract-first client for the Notion API, pinned to `Notion-Ver
 - Req constrained to `~> 0.7`: file-upload send uses Req's `form_multipart`, which does
   not exist in 0.5/0.6.
 - Test suite fully stubbed via `Req.Test` (no network, no real tokens).
+
+### Docs
+
+- House documentation: project layout (`docs/PROJ-LAYOUT.md` + summary,
+  `docs/layout/lib.md`), architecture (`docs/PROJ-ARCH.md` + summary,
+  `docs/arch/request-lifecycle.md`), threat model (`docs/THREAT-MODEL.md` + summary,
+  `docs/threats/` — token handling, request/retry, file uploads, Hex supply chain), and
+  doc-pointer markers across the doc set (`.meta/pointers.yaml`).
