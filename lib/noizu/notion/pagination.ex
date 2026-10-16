@@ -29,14 +29,14 @@ defmodule Noizu.Notion.Pagination do
 
             {:ok, other} ->
               raise ArgumentError,
-                    "expected a paginated list envelope (object:\"list\"), got: " <>
-                      inspect(other, limit: 5)
+                    "expected a paginated list envelope (object:\"list\"), got " <>
+                      inspect_shape(other)
 
             {:error, %Error{} = error} ->
               raise error
 
             {:error, other} ->
-              raise ArgumentError, "unexpected fetch failure: #{inspect(other, limit: 5)}"
+              raise ArgumentError, "unexpected fetch failure: #{inspect_shape(other)}"
           end
       end,
       fn _ -> :ok end
@@ -75,4 +75,23 @@ defmodule Noizu.Notion.Pagination do
   end
 
   defp next_state(_page, _), do: :done
+
+  # T-005: failure messages describe the shape of an unexpected response, never its
+  # content — five inspect terms of a Notion body can name workspace content, and a
+  # raised message tends to land in host logs. Kind + size only.
+  defp inspect_shape(term) when is_map(term),
+    do: "a map with #{plural(map_size(term), "key")}"
+
+  defp inspect_shape(term) when is_binary(term),
+    do: "a string of #{plural(byte_size(term), "byte")}"
+
+  defp inspect_shape(term) when is_list(term),
+    do: "a list of #{plural(length(term), "item")}"
+
+  defp inspect_shape(term) when is_number(term), do: "a number"
+  defp inspect_shape(nil), do: "nil"
+  defp inspect_shape(term) when is_atom(term), do: "an atom"
+  defp inspect_shape(_term), do: "an opaque term"
+
+  defp plural(n, singular), do: "#{n} #{singular}#{if n == 1, do: "", else: "s"}"
 end

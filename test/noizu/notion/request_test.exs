@@ -117,6 +117,102 @@ defmodule Noizu.Notion.RequestTest do
     end
   end
 
+  describe "Retry-After clamping (T-002)" do
+    test "clamps a huge Retry-After header to 30s, sleep function injectable" do
+      parent = self()
+
+      plug = fn conn ->
+        if bump() == 1 do
+          conn
+          |> Plug.Conn.put_resp_header("retry-after", "2000000000")
+          |> Plug.Conn.put_resp_content_type("application/json")
+          |> Plug.Conn.resp(429, Jason.encode!(error_body(429, "rate_limited", "slow down")))
+        else
+          send(parent, :retried)
+          respond_json(conn, 200, %{"object" => "user", "id" => "u1"})
+        end
+      end
+
+      cl =
+        client(plug,
+          retry: [
+            max_attempts: 2,
+            sleep_fn: fn ms -> send(parent, {:slept, ms}) end
+          ]
+        )
+
+      assert {:ok, %{"id" => "u1"}} = Users.me(cl)
+      assert_received {:slept, 30_000}
+      assert_received :retried
+    end
+
+    test "negative and non-numeric Retry-After headers fall back to the backoff" do
+      for header <- ["-5", "soon"] do
+        Process.put(:call_count, 0)
+        parent = self()
+
+        plug = fn conn ->
+          if bump() == 1 do
+            conn
+            |> Plug.Conn.put_resp_header("retry-after", header)
+            |> Plug.Conn.put_resp_content_type("application/json")
+            |> Plug.Conn.resp(429, Jason.encode!(error_body(429, "rate_limited", "slow down")))
+          else
+            send(parent, :retried)
+            respond_json(conn, 200, %{"object" => "user", "id" => "u1"})
+          end
+        end
+
+        cl =
+          client(plug,
+            retry: [
+              max_attempts: 2,
+              base_backoff_ms: 7,
+              sleep_fn: fn ms -> send(parent, {:slept, ms}) end
+            ]
+          )
+
+        assert {:ok, %{"id" => "u1"}} = Users.me(cl)
+        assert_received {:slept, 7}
+        assert_received :retried
+      end
+    end
+
+    test "clamps additional_data.retry_after; negative values use the backoff" do
+      parent = self()
+
+      plug = fn conn ->
+        count = bump()
+
+        if count == 1 do
+          respond_json(conn, 429, %{
+            "object" => "error",
+            "status" => 429,
+            "code" => "rate_limited",
+            "message" => "slow down",
+            "additional_data" => %{"retry_after" => 86_400}
+          })
+        else
+          send(parent, :retried)
+          respond_json(conn, 200, %{"object" => "user", "id" => "u1"})
+        end
+      end
+
+      cl =
+        client(plug,
+          retry: [
+            max_attempts: 2,
+            base_backoff_ms: 7,
+            sleep_fn: fn ms -> send(parent, {:slept, ms}) end
+          ]
+        )
+
+      assert {:ok, %{"id" => "u1"}} = Users.me(cl)
+      assert_received {:slept, 30_000}
+      assert_received :retried
+    end
+  end
+
   defp bump do
     prev = Process.get(:call_count) || 0
     Process.put(:call_count, prev + 1)

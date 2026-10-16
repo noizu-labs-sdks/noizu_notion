@@ -1,0 +1,90 @@
+---
+pointers:
+  00785b5b-3871-5068-b662-8dc7738bf3f7:
+    created_at: 2026-10-16T22:03:47.817774Z
+    description: 'Mermaid system diagram: host app, resource modules, request engine, Req, api.notion.com.'
+    file_path: docs/PROJ-ARCH.md
+    function: noizu_notion system diagram
+    kind: diagram
+    line: 22
+    locations:
+      - end_line: 49
+        file_path: docs/PROJ-ARCH.md
+        line: 22
+    token: 𔂼𓳞𓽭𓽗
+    updated_at: 2026-10-16T22:05:27.263324Z
+  48db3b0f-3979-5e04-88e7-649843734038:
+    created_at: 2026-10-16T22:03:47.825206Z
+    description: 'Stable-ID vulnerability register (T-001..): severity, STRIDE, component, status; referenced from threats/*.md.'
+    file_path: docs/THREAT-MODEL.md
+    function: noizu_notion vulnerability register
+    kind: component
+    line: 78
+    locations:
+      - end_line: 97
+        file_path: docs/THREAT-MODEL.md
+        line: 78
+    token: 𓥰𓠙𔍟𓪸
+    updated_at: 2026-10-16T22:05:27.263315Z
+  645ea28b-13a5-5fb2-aa6a-c7a57e66699f:
+    created_at: 2026-10-16T22:03:47.812859Z
+    description: 'Architecture: layers, request lifecycle, error model, pagination, key decisions, stack.'
+    file_path: docs/PROJ-ARCH.md
+    function: noizu_notion architecture overview
+    kind: file
+    line: 3
+    locations:
+      - file_path: docs/PROJ-ARCH.md
+        line: 3
+    token: 𔒾𔍀𔈩𓢿
+    updated_at: 2026-10-16T22:05:27.263331Z
+  ac34edf6-cae0-589e-a1ae-bae9d7d4952e:
+    created_at: 2026-10-16T22:03:47.802923Z
+    description: 'Wire contract for the Notion API client: versioning, auth, endpoints, pagination, errors, retry.'
+    file_path: docs/API-CONTRACT.md
+    function: noizu_notion API contract
+    kind: file
+    line: 3
+    locations:
+      - file_path: docs/API-CONTRACT.md
+        line: 3
+    token: 𔈲𓣩𓋐𓌎
+    updated_at: 2026-10-16T22:05:27.263327Z
+  efabfa20-eeee-53d1-9f72-9edbc4aa4afa:
+    created_at: 2026-10-16T22:03:47.815221Z
+    description: 'Threat model: token handling, untrusted input, retry DoS, uploads, Hex supply chain; vulnerability register.'
+    file_path: docs/THREAT-MODEL.md
+    function: noizu_notion threat model
+    kind: file
+    line: 3
+    locations:
+      - file_path: docs/THREAT-MODEL.md
+        line: 3
+    token: 𓉇𓁀𓜂𓔪
+    updated_at: 2026-10-16T22:05:27.263298Z
+  f0591ed9-7e9f-55e0-91f6-f98ee7bf6038:
+    created_at: 2026-10-16T22:03:47.822594Z
+    description: 'Retry policy and Retry-After sourcing: 429/529 always, idempotent 5xx only, unbounded sleep caveat (T-002).'
+    file_path: docs/arch/request-lifecycle.md
+    function: noizu_notion retry state machine
+    kind: logic
+    line: 64
+    locations:
+      - end_line: 91
+        file_path: docs/arch/request-lifecycle.md
+        line: 64
+    token: 𓴟𔎍𓷑𓣘
+    updated_at: 2026-10-16T22:05:27.263320Z
+  f715eff2-8000-52f1-bb9b-a076b4d8de80:
+    created_at: 2026-10-16T22:03:47.820162Z
+    description: 'Sequence diagram of Request.perform/4: token check, headers, Req call, decode, retry loop.'
+    file_path: docs/arch/request-lifecycle.md
+    function: request lifecycle sequence diagram
+    kind: diagram
+    line: 8
+    locations:
+      - end_line: 38
+        file_path: docs/arch/request-lifecycle.md
+        line: 8
+    token: 𓛺𔇱𔐷𓉐
+    updated_at: 2026-10-16T22:05:27.263310Z

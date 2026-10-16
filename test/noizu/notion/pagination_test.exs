@@ -47,6 +47,38 @@ defmodule Noizu.Notion.PaginationTest do
     end
   end
 
+  describe "failure messages describe shape, not content (T-005)" do
+    test "non-envelope bodies render as a shape description" do
+      fetch = fn nil -> {:ok, %{"secret" => "top secret workspace page title"}} end
+
+      error =
+        assert_raise ArgumentError, fn ->
+          fetch |> Pagination.stream() |> Enum.to_list()
+        end
+
+      message = Exception.message(error)
+      assert message =~ "expected a paginated list envelope"
+      assert message =~ "a map with 1 key"
+      refute message =~ "top secret"
+      refute message =~ "workspace"
+    end
+
+    test "unexpected fetch failures render as a shape description" do
+      raw = "raw transport failure mentioning secret_token_value"
+      fetch = fn nil -> {:error, raw} end
+
+      error =
+        assert_raise ArgumentError, fn ->
+          fetch |> Pagination.stream() |> Enum.to_list()
+        end
+
+      message = Exception.message(error)
+      assert message =~ "unexpected fetch failure"
+      assert message =~ "a string of #{byte_size(raw)} bytes"
+      refute message =~ "secret_token_value"
+    end
+  end
+
   test "with_cursor/2 and with_cursor_in_body/2 manage start_cursor" do
     assert Pagination.with_cursor([page_size: 10], "c1") == [start_cursor: "c1", page_size: 10]
     assert Pagination.with_cursor([start_cursor: "old"], nil) == []
