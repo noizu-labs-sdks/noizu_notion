@@ -1,5 +1,7 @@
 # Noizu.Notion — API Contract
 
+〚📁:𔈲𓣩𓋐𓌎〛 noizu_notion API contract :: Wire contract for the Notion API client: versioning, auth, endpoints, pagination, errors, retry.
+
 Elixir client contract for the **Notion API**, derived from the official docs at
 developers.notion.com (fetched 2026-10-17; reference pages pinned to the current version).
 

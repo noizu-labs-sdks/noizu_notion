@@ -26,6 +26,11 @@ defmodule Noizu.Notion.Client do
       library's own options (method, url, auth headers) always take precedence.
     * `:retry` — keyword: `:max_attempts` (default `3`; `0` disables retrying) and
       `:base_backoff_ms` (default `500`; used when the server sends no `Retry-After`).
+      `:sleep_fn` (default `&Process.sleep/1`) overrides the retry sleep — an escape
+      hatch for tests; retries themselves are clamped to 30 s of server-supplied delay.
+
+  The struct's `Inspect` implementation redacts the token (`token: "[REDACTED]"`), so
+  logging or inspecting a client can never leak the credential.
   """
 
   defstruct [:token, :version, :base_url, :req_options, :retry]
@@ -58,4 +63,28 @@ defmodule Noizu.Notion.Client do
   @doc "The default `Notion-Version` header value this library is pinned to."
   @spec api_version() :: String.t()
   def api_version, do: @api_version
+end
+
+defimpl Inspect, for: Noizu.Notion.Client do
+  # T-001: the bearer token must never reach logs, crash reports, or REPL output via
+  # inspect/2. The token field renders as a fixed placeholder; every other field is
+  # left readable for debugging. See docs/threats/token-handling.md.
+  @redacted "[REDACTED]"
+
+  @spec inspect(Noizu.Notion.Client.t(), Inspect.Opts.t()) :: Inspect.Algebra.t()
+  def inspect(%Noizu.Notion.Client{} = client, opts) do
+    import Inspect.Algebra
+
+    fields = [
+      token: if(is_binary(client.token), do: @redacted, else: client.token),
+      version: client.version,
+      base_url: client.base_url,
+      req_options: client.req_options,
+      retry: client.retry
+    ]
+
+    container_doc("#Noizu.Notion.Client<", fields, ">", opts, fn {key, value}, opts ->
+      concat([Atom.to_string(key), ": ", to_doc(value, opts)])
+    end)
+  end
 end

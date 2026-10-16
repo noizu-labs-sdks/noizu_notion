@@ -139,8 +139,14 @@ defmodule Noizu.Notion.Error do
   How long to wait before retrying, in milliseconds: the `retry-after` response header
   (integer seconds) when present, else the body's `additional_data.retry_after`, else
   `nil` (the caller applies its own backoff).
+
+  T-002: server-supplied values are never trusted verbatim — any hint that survives
+  parsing is clamped to `@max_retry_after_ms` (30 s), and negative or non-numeric
+  values fall back to `nil` so the caller's own backoff applies. A hostile
+  `Retry-After: 2000000000` header can no longer park the calling process for years.
   """
-  @spec retry_after_ms(t(), %{optional(String.t()) => [String.t()]}) :: non_neg_integer() | nil
+  @spec retry_after_ms(t(), %{optional(String.t()) => [String.t()]}) ::
+          non_neg_integer() | nil
   def retry_after_ms(error, headers \\ %{})
 
   def retry_after_ms(%__MODULE__{} = error, headers) when is_map(headers) do
@@ -152,17 +158,23 @@ defmodule Noizu.Notion.Error do
 
   def retry_after_ms(%__MODULE__{} = error, _other), do: body_retry_after(error)
 
+  @max_retry_after_ms 30_000
+
   defp parse_seconds(seconds, error) do
     case Integer.parse(seconds) do
-      {n, _rest} when n >= 0 -> n * 1000
+      {n, _rest} when n >= 0 -> clamp_ms(n * 1000)
       _ -> body_retry_after(error)
     end
   end
 
-  defp body_retry_after(%__MODULE__{additional_data: %{"retry_after" => n}}) when is_number(n),
-    do: trunc(n * 1000)
+  defp body_retry_after(%__MODULE__{additional_data: %{"retry_after" => n}}) when is_number(n) do
+    ms = trunc(n * 1000)
+    if ms >= 0, do: clamp_ms(ms), else: nil
+  end
 
   defp body_retry_after(_), do: nil
+
+  defp clamp_ms(ms), do: min(ms, @max_retry_after_ms)
 
   defp normalize_code(code) when is_binary(code) do
     try do

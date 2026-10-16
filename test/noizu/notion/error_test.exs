@@ -79,6 +79,39 @@ defmodule Noizu.Notion.ErrorTest do
       error = Error.from_response(429, Testing.error_body(429, "rate_limited", "x"))
       assert Error.retry_after_ms(error, %{}) == nil
     end
+
+    test "clamps huge header and body values to the 30s cap (T-002)" do
+      error = Error.from_response(429, Testing.error_body(429, "rate_limited", "x"))
+
+      assert Error.retry_after_ms(error, %{"retry-after" => ["45"]}) == 30_000
+      assert Error.retry_after_ms(error, %{"retry-after" => ["2000000000"]}) == 30_000
+
+      huge_body =
+        Testing.error_body(429, "rate_limited", "x")
+        |> Map.put("additional_data", %{"retry_after" => 1_000_000})
+
+      assert Error.retry_after_ms(Error.from_response(429, huge_body), %{}) == 30_000
+    end
+
+    test "negative or non-numeric header values fall back (T-002)" do
+      error = Error.from_response(429, Testing.error_body(429, "rate_limited", "x"))
+
+      assert Error.retry_after_ms(error, %{"retry-after" => ["-5"]}) == nil
+      assert Error.retry_after_ms(error, %{"retry-after" => ["soon"]}) == nil
+    end
+
+    test "additional_data.retry_after: clamped, negatives nil, fractions kept (T-002)" do
+      fraction =
+        Testing.error_body(429, "rate_limited", "x")
+        |> Map.put("additional_data", %{"retry_after" => 1.5})
+
+      negative =
+        Testing.error_body(429, "rate_limited", "x")
+        |> Map.put("additional_data", %{"retry_after" => -4})
+
+      assert Error.retry_after_ms(Error.from_response(429, fraction)) == 1_500
+      assert Error.retry_after_ms(Error.from_response(429, negative)) == nil
+    end
   end
 
   test "message/1 renders a readable one-liner" do
