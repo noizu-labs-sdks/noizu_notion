@@ -14,36 +14,33 @@ Threat detail for T-003, T-004 — Hex dependencies and the published package.
 Runtime surface is deliberately tiny: two direct deps. `req`'s transitive tree (finch,
 mint, castore/etc. via CA store, nimble_options) is the real trust footprint.
 
-## T-003 (Medium) — compromised Hex dependency · Partial
+## T-003 (Medium) — compromised Hex dependency · Mitigated
 
 A malicious or hijacked release within `~>` bounds executes inside every consumer's
-process, with full access to the token this library holds and to the host. Current
-controls:
+process, with full access to the token this library holds and to the host. Controls in
+place:
 
 - `mix.lock` is committed — reproducible builds; consumers get exactly the audited
   versions unless they deliberately update.
 - Constraints are bounded ranges, not `>=` — no silent major-version drift.
 - The runtime tree is minimal and `req`/`finch` are mainstream, widely-watched packages.
+- **CI runs `mix hex.audit`** on every push and PR (T-004 fixed), catching retired or
+  unreachable packages in the tree.
 
-Missing controls:
+Residual risk, inherent to any small library: a *future* in-bounds release that is
+compromised but not yet retired passes `hex.audit` until flagged; no renovate/dependabot
+config gates lockfile drift yet. Reviewed, deliberate bumps remain the second control.
 
-- No automated vulnerability/retirement auditing (`mix hex.audit`, `mix deps.audit`
-  via `hex_audit`, renovate/dependabot) — nothing in the repo runs them.
-- No CI to run anything on a schedule (see T-004).
+## T-004 (Low) — no CI pipeline · Mitigated
 
-Consumer guidance shipped in `README.md`/`mix.exs` cannot fix this; the repo needs the
-tooling. Minimum viable: a CI job running `mix deps.get && mix test && mix hex.audit`
-and a renovate config pinned to `mix.lock`.
-
-## T-004 (Low) — no CI pipeline · Open
-
-The repo has **no `.github/` directory at all** — no workflow gates tests, formatting
-(`mix format --check-formatted`), compilation warnings, or dependency audits on push or
-PR. The README's Development section assumes a human runs these locally. Consequence:
-regressions and supply-chain drift reach `main` (and then Hex via a manual
-`mix hex.publish`) with no automated check. For a credential-handling library the test
-suite is also the security regression net (atom-safety, filter_properties encoding,
-retry behavior are byte-exact assertions) — it should run on every push.
+`.github/workflows/ci.yml` now gates every push and PR against `develop`, `stage`, and
+`main`: `mix deps.get`, `mix format --check-formatted`, `mix compile --warnings-as-errors`,
+`mix test`, and `mix hex.audit`, on a two-entry matrix (Elixir 1.20.1/OTP 27 — the lowest
+supported pair, since `mix.exs` requires `~> 1.20` which needs OTP 27+ — and
+Elixir 1.20.4/OTP 29), with `deps`/`_build` cached and action versions pinned to majors.
+For a credential-handling library the test suite is also the security regression net
+(atom-safety, filter_properties encoding, retry clamping, token redaction are byte-exact
+assertions) — it now runs on every push.
 
 ## Published package (downstream supply chain)
 

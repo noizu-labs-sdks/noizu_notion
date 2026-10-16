@@ -58,7 +58,7 @@ graph LR
         E["NOTION_TOKEN env"]
     end
     subgraph Lib["noizu_notion"]
-        S["%Client{} — token field<br/>(inspect-visible: T-001)"]
+        S["%Client{} — token field<br/>(inspect-redacted: T-001)"]
         R["Request engine<br/>headers, retry loop"]
         P["Parsers: body, error<br/>envelope, Retry-After"]
         M["multipart send_file<br/>(whole file in memory: T-006)"]
@@ -68,7 +68,7 @@ graph LR
 
     E --> C --> S --> R
     R -->|"Bearer header, TLS"| N
-    N -->|"JSON, error codes,<br/>Retry-After (T-002)"| P --> R
+    N -->|"JSON, error codes,<br/>Retry-After (T-002, clamped)"| P --> R
     C -->|"file bytes"| M --> R
     H -.->|"build time"| Lib
 ```
@@ -79,11 +79,11 @@ graph LR
 
 | ID | Severity | STRIDE | Component | Finding | Status |
 |---|---|---|---|---|---|
-| T-001 | High | Information disclosure | `Client` struct | `token` is a plain struct field with no redacted `Inspect` implementation — any `inspect/2`, crash-report, or `Logger.debug` that touches a client leaks the credential in plaintext logs | **Open** |
-| T-002 | Medium | Denial of service | Retry loop | Server-controlled `Retry-After` (header or `additional_data`) is slept verbatim with `Process.sleep/1` — no upper clamp; a hostile/broken peer parks the calling process indefinitely (contract documents ≤60 s but the code does not enforce it) | **Open** |
-| T-003 | Medium | Supply chain | Hex deps | Compromised `req`/`jason` release within `~>` bounds executes with host privileges and token access. Mitigations partial: `mix.lock` committed, tiny runtime dep tree; no automated audit (`mix hex.audit` / renovate) and **no CI at all** in this repo | **Partial** |
-| T-004 | Low | Supply chain / Tampering | Repository | No CI pipeline exists (no `.github/`): nothing gates tests, formatting, or dependency audits on push/PR | **Open** |
-| T-005 | Low | Information disclosure | Pagination errors | Malformed-envelope failures embed `inspect(other, limit: 5)` of the raw response into exception messages — workspace-content fragments can reach host logs | **Open** |
+| T-001 | High | Information disclosure | `Client` struct | `token` is a plain struct field with no redacted `Inspect` implementation — any `inspect/2`, crash-report, or `Logger.debug` that touches a client leaks the credential in plaintext logs | **Mitigated** — custom `Inspect` renders `token: "[REDACTED]"` (`Noizu.Notion.ClientTest "inspect/2 never prints the bearer token"`) |
+| T-002 | Medium | Denial of service | Retry loop | Server-controlled `Retry-After` (header or `additional_data`) is slept verbatim with `Process.sleep/1` — no upper clamp; a hostile/broken peer parks the calling process indefinitely (contract documents ≤60 s but the code does not enforce it) | **Mitigated** — `Error.retry_after_ms/2` clamps all server-supplied hints to 30 s; negative/non-numeric fall back to the client backoff (`Noizu.Notion.ErrorTest "clamps huge header and body values to the 30s cap"`, `Noizu.Notion.RequestTest "clamps a huge Retry-After header to 30s, sleep function injectable"`) |
+| T-003 | Medium | Supply chain | Hex deps | Compromised `req`/`jason` release within `~>` bounds executes with host privileges and token access. Mitigations: `mix.lock` committed, bounded ranges, tiny runtime dep tree, automated `mix hex.audit` in CI | **Mitigated** — audit + lock + bounded ranges in CI (`.github/workflows/ci.yml`); residual: a future in-bounds compromised release and un-pinned renovate bumps remain inherent to any small library |
+| T-004 | Low | Supply chain / Tampering | Repository | No CI pipeline exists (no `.github/`): nothing gates tests, formatting, or dependency audits on push/PR | **Mitigated** — `.github/workflows/ci.yml`: format + `compile --warnings-as-errors` + test + `hex.audit`, 2-entry Elixir/OTP matrix, on push and PR for develop/stage/main |
+| T-005 | Low | Information disclosure | Pagination errors | Malformed-envelope failures embed `inspect(other, limit: 5)` of the raw response into exception messages — workspace-content fragments can reach host logs | **Mitigated** — messages carry a shape description (kind + size) only (`Noizu.Notion.PaginationTest "failure messages describe shape, not content"`) |
 | T-006 | Low | Denial of service | `FileUploads.send_file/3` | File contents are passed as one binary: the whole file (multi-part mode targets >20 MiB, up to 10 000 parts) is buffered in caller memory; no streaming path | **Open** (documented) |
 | T-007 | Low | Tampering | Retry + multipart | 429/529 retry applies to POST; a `send` that processed server-side but answered 529 could re-send a part. Consequence limited: same `part_number` overwrite, per-part idempotency | **Accepted** |
 | T-008 | Medium | Information disclosure / EoP | `Client` options | `base_url` and `req_options` are host-controlled: config tampering (or a hostile default in `:noizu_notion, :client`) redirects the bearer token to an attacker's host. By design — the host is trusted; noted so consumers treat client config as secret-sensitive | **Accepted** |
@@ -98,9 +98,10 @@ graph LR
 
 ## Mitigation Coverage
 
-6 mitigated · 1 partial · 5 open · 2 accepted. The two highest-value fixes are small:
-a redacted `Inspect` implementation for `%Client{}` (T-001) and a clamp on
-`Retry-After`-derived sleep (T-002).
+11 mitigated · 1 open (documented, T-006) · 2 accepted. The 2026-10 security pass
+closed T-001 (redacted `Inspect` on `%Client{}`), T-002 (30 s clamp on all
+server-supplied `Retry-After` hints), and T-005 (shape-only pagination failure
+messages), and added the first CI pipeline (T-004) with `mix hex.audit` (T-003).
 
 ## Residual Risk
 

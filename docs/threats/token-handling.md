@@ -8,45 +8,49 @@ integration token, OAuth bearer, or personal access token) lives and moves.
 | Stage | Where | Handling |
 |---|---|---|
 | Entry | `Client.new(token: …)` | Caller supplies the token, normally `System.fetch_env!("NOTION_TOKEN")`. The library never reads env vars, files, or dotenv/direnv itself. Optional app-env default `:noizu_notion, :client` is a keyword list read at call time. |
-| Rest | `%Client{token}` struct field | Plain field, held in process memory only. Nothing is written to disk, ETS, or a cache. No process ever copies it except `Request.perform/4` when building headers. |
+| Rest | `%Client{token}` struct field | Held in process memory only. `inspect/2` renders the field as `token: "[REDACTED]"` via a custom `Inspect` implementation (T-001, mitigated). Nothing is written to disk, ETS, or a cache. No process ever copies it except `Request.perform/4` when building headers. |
 | Transmit | `authorization: Bearer <token>` header | Set by `Request.perform/4` on every request; never a query param or URL fragment (T-010). Library-set headers cannot be overridden via `req_options` (T-013 in the register). |
 | Absence | `ensure_token/1` | Non-empty binary required; otherwise `{:error, %Error{status: 401, code: :unauthorized}}` **before** any network I/O (T-014). The failure message contains no token material. |
 | Exit | — | No logout/scrub API: the token lives as long as the struct. BEAM process GC handles the rest; nothing to persist. |
 
-## T-001 (High) — inspect-visible token · Open
+## T-001 (High) — inspect-visible token · Mitigated
 
 `defstruct [:token, :version, :base_url, :req_options, :retry]` in
-`lib/noizu/notion/client.ex` derives no `Inspect` implementation. Any of these prints the
-raw credential:
+`lib/noizu/notion/client.ex` now carries a custom `Inspect` implementation that renders
+the token as a fixed placeholder and every other field readable:
 
 ```elixir
-inspect(client)                    # %Noizu.Notion.Client{token: "secret_...", ...}
-Logger.debug("client: #{inspect(client)}")
-:observer.peek(process)            # struct state visible in process dumps
+inspect(client)
+#=> "#Noizu.Notion.Client<token: \"[REDACTED]\", version: \"2026-03-11\", ...>"
 ```
 
-Elixir convention for credential-bearing structs is a redacted `Inspect` — either
+So `Logger.debug("client: #{inspect(client)}")`, crash reports capturing process state,
+and REPL output can no longer leak the raw credential from this library's structs.
 
-```elixir
-@derive {Inspect, only: [:version, :base_url, :retry]}
-defstruct [:token, :version, :base_url, :req_options, :retry]
-```
+Guardrails asserted by the suite (`test/noizu/notion/client_test.exs`):
 
-or a custom `inspect/2` rendering `token: "#redacted"`. Until landed: the host's logging
-discipline is the only control (never log client structs; crash reports that capture
-process state can still leak).
+- `Noizu.Notion.ClientTest "inspect/2 never prints the bearer token"` — the redaction,
+  plus `nil` tokens rendering as `token: nil`.
+- `"error structs and exception messages never carry the token"` — `Error.message/1`
+  emits status, code, `request_id`, and Notion's own message only; the missing-token
+  message is a fixed string.
+- `"Req redacts the authorization header in request inspect output"` — tripwire on the
+  dependency: Req's own `Inspect` for `%Req.Request{}` masks `authorization` headers and
+  `:auth` options, so request dumps stay safe as long as Req keeps that behaviour.
 
-The library itself never logs — zero `Logger` calls in `lib/` (verified by grep) — so the
-only in-library leak path is exception messages, which are built from server-supplied
-strings and never interpolate the token (`Error.message/1` emits status, code,
-`request_id`, and Notion's own message only; the missing-token message is a fixed string).
+The library itself never logs — zero `Logger` calls in `lib/` (verified by grep).
 
-## T-005 (Low) — response fragments in stream errors · Open
+## T-005 (Low) — response fragments in stream errors · Mitigated
 
-`Noizu.Notion.Pagination` raises `ArgumentError` with `inspect(other, limit: 5)` when a
-fetch returns a non-envelope 2xx body or an unexpected error shape. The `limit: 5` keeps
-it bounded, but five terms of a Notion response can still name workspace content. If a
-host logs stream-raised exceptions, assume small content fragments reach logs.
+`Noizu.Notion.Pagination` used to raise `ArgumentError` with `inspect(other, limit: 5)`
+embedded in the message — five terms of a Notion response can name workspace content, and
+raised messages land in host logs. Failure messages now describe the **shape** of the
+unexpected value only (kind + size, e.g. `a map with 2 keys`, `a string of 51 bytes`);
+no response content is ever interpolated.
+
+Evidence: `Noizu.Notion.PaginationTest "failure messages describe shape, not content"`
+(both the non-envelope and unexpected-failure branches, asserting the content does not
+appear and the description does).
 
 ## T-008 (Medium) — credential redirection via config · Accepted
 
