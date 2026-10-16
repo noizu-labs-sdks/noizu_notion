@@ -4,23 +4,31 @@ Threat detail for T-002, T-011–T-015 — the `Noizu.Notion.Request` engine
 (`lib/noizu/notion/request.ex`), its retry policy, and how server-controlled data is
 parsed. Flow and state machine: [../arch/request-lifecycle.md](../arch/request-lifecycle.md).
 
-## T-002 (Medium) — unbounded Retry-After sleep · Open
+## T-002 (Medium) — unbounded Retry-After sleep · Mitigated
 
 The retry delay comes from, in order (`Error.retry_after_ms/2`):
 
-1. `retry-after` response header — `Integer.parse/1`, any result `>= 0` accepted;
-2. body `additional_data.retry_after` — any number accepted;
+1. `retry-after` response header — `Integer.parse/1`, non-negative integers only;
+2. body `additional_data.retry_after` — numbers only;
 3. fallback `base_backoff_ms * attempt` (caller-controlled).
 
-The chosen value is passed straight to `Process.sleep/1`. Nothing clamps it: a peer
-returning `Retry-After: 2000000000` parks the calling process for ~63 years — a clean
-denial of service against whatever process made the call (a request process in a Phoenix
-app, a LiveView, a GenServer). The API contract documents ≤60 s for the connection window
-(longer for the workspace budget), but the code does not enforce any ceiling, and nothing
-verifies the header's provenance beyond TLS.
+Every server-supplied hint that survives parsing is now **clamped to 30 s**
+(`@max_retry_after_ms`): a `Retry-After: 2000000000` header or a
+`retry_after: 86400` body field sleeps at most 30 s. Negative or non-numeric values
+(`-5`, `soon`, a negative body number) yield `nil`, so the caller's own backoff applies.
+The clamp lives in `Error.retry_after_ms/2`, so every caller of that function — not just
+the retry loop — inherits it.
 
-Recommended fix: clamp in `retry_delay_ms/4` (e.g. `min(ms, 120_000)`) and expose the
-clamp as a `retry: [:max_retry_after_ms]` client option.
+Evidence: `Noizu.Notion.ErrorTest` — `"clamps huge header and body values to the 30s cap
+(T-002)"`, `"negative or non-numeric header values fall back (T-002)"`,
+`"additional_data.retry_after: clamped, negatives nil, fractions kept (T-002)"` — and
+`Noizu.Notion.RequestTest "clamps a huge Retry-After header to 30s, sleep function
+injectable (T-002)"` (the retry loop itself, with the sleep function injected via
+`retry: [sleep_fn:]` so the pre-fix behaviour — a real `Process.sleep` of ~63 years —
+fails the test instead of hanging it).
+
+Residual: 30 s is still 30 s × `max_attempts` of parked caller process against a hostile
+peer; the client controls the multiplication via `retry: [max_attempts:]`.
 
 Secondary retry-posture notes (accepted as designed):
 

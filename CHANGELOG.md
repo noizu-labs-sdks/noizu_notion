@@ -2,6 +2,39 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- **T-001 (High):** `%Noizu.Notion.Client{}` implements `Inspect` so the bearer token
+  renders as `token: "[REDACTED]"` — logging, crash reports, and REPL dumps of a client
+  can no longer leak the credential. Error structs/messages verified token-free; Req's
+  own auth-header inspect redaction covered by a tripwire test.
+  (`test/noizu/notion/client_test.exs`)
+- **T-002 (Medium):** server-supplied `Retry-After` — both the response header and
+  `additional_data.retry_after` — is clamped to 30 s; negative or non-numeric values
+  fall back to the client's `base_backoff_ms` backoff instead of sleeping negative or
+  hanging the caller. (`Noizu.Notion.ErrorTest`, `Noizu.Notion.RequestTest`)
+- **T-005 (Low):** pagination failure messages no longer embed response fragments
+  (`inspect(other, limit: 5)`); they describe the shape of the unexpected value
+  (kind + size) so workspace content cannot reach host logs via raised exceptions.
+  (`Noizu.Notion.PaginationTest`)
+
+### Added
+
+- `retry: [sleep_fn:]` client option (default `&Process.sleep/1`) — lets tests observe
+  retry delays without sleeping.
+- **CI** (`.github/workflows/ci.yml`): on push and PR for develop/stage/main —
+  `mix deps.get`, `mix format --check-formatted`, `mix compile --warnings-as-errors`,
+  `mix test`, `mix hex.audit`; matrix over Elixir 1.20.1/OTP 27 (lowest supported) and
+  1.20.4/OTP 29 (current); deps/_build cached. (T-003/T-004)
+
+### Docs
+
+- Threat model updated: T-001/T-002/T-005 and the CI findings (T-003/T-004) read
+  **Mitigated** with the covering tests as evidence
+  (`docs/THREAT-MODEL.md`, `docs/THREAT-MODEL.summary.md`, `docs/threats/*.md`).
+
 ## 0.1.0 — 2026-10-17
 
 Initial release. Contract-first client for the Notion API, pinned to `Notion-Version: 2026-03-11`

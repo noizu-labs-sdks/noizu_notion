@@ -114,11 +114,19 @@ defmodule Noizu.Notion.Request do
       Error.retryable?(error, idempotent: method in @idempotent)
 
     if attempt < max and retryable? do
-      Process.sleep(retry_delay_ms(error, resp_headers, client, attempt))
+      sleep(client, retry_delay_ms(error, resp_headers, client, attempt))
       do_request(request_opts, method, client, attempt + 1, max)
     else
       {:error, error}
     end
+  end
+
+  # Retry delays are already clamped by Error.retry_after_ms/2 (T-002: server-supplied
+  # Retry-After never exceeds 30 s). :sleep_fn exists so tests can observe the delay
+  # without actually sleeping; production callers use the Process.sleep/1 default.
+  defp sleep(client, ms) do
+    sleep_fn = Keyword.get(client.retry || [], :sleep_fn, &Process.sleep/1)
+    sleep_fn.(ms)
   end
 
   defp retry_delay_ms(%Error{} = error, headers, client, attempt) do
