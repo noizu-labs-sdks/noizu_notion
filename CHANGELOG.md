@@ -26,8 +26,20 @@ All notable changes to this project are documented in this file.
   retry delays without sleeping.
 - **CI** (`.github/workflows/ci.yml`): on push and PR for develop/stage/main —
   `mix deps.get`, `mix format --check-formatted`, `mix compile --warnings-as-errors`,
-  `mix test`, `mix hex.audit`; matrix over Elixir 1.20.1/OTP 27 (lowest supported) and
-  1.20.4/OTP 29 (current); deps/_build cached. (T-003/T-004)
+  `mix test`, `mix hex.audit`; matrix over Elixir 1.15.8/OTP 26 (floor), 1.18.4/OTP 27
+  (middle) and 1.20.4/OTP 29 (current); deps/_build cached. (T-003/T-004)
+
+### Changed
+
+- **Repository moved to the `noizu-labs-sdks` GitHub org** — `@source_url` in
+  `mix.exs` (Hex metadata links: GitHub) now points at
+  `github.com/noizu-labs-sdks/noizu_notion`; no other old-org references remained
+  in the tree.
+- **Elixir floor lowered from `~> 1.20` to `~> 1.15`** — every locked dependency
+  (req 0.7.5, plug 1.20.3, finch 0.24.0, hpax 1.1.0, ex_doc 0.40.4) already
+  declares `~> 1.15`, and the codebase uses no post-1.15 syntax or stdlib APIs,
+  so most Elixir users can consume the package; CI matrix now runs the 1.15.8/OTP 26
+  floor plus 1.18.4/OTP 27 and 1.20.4/OTP 29.
 
 ### Docs
 
