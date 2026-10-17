@@ -2,13 +2,13 @@ defmodule Noizu.Notion.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @source_url "https://github.com/noizu-labs/noizu_notion"
+  @source_url "https://github.com/noizu-labs-sdks/noizu_notion"
 
   def project do
     [
       app: :noizu_notion,
       version: @version,
-      elixir: "~> 1.20",
+      elixir: "~> 1.15",
       name: "Noizu.Notion",
       description: "Elixir client for the Notion API (Notion-Version 2026-03-11).",
       package: package(),
