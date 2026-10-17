@@ -14,8 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Lowest supported pair: mix.exs requires ~> 1.20, which needs OTP 27+.
-          - elixir: "1.20.1"
+          # Lowest supported pair: mix.exs requires ~> 1.15; all locked deps
+          # (req 0.7, plug 1.20, finch 0.24, hpax) also declare ~> 1.15.
+          - elixir: "1.15.8"
+            otp: "26"
+          # Middle pair.
+          - elixir: "1.18.4"
             otp: "27"
           # Current pair.
           - elixir: "1.20.4"
