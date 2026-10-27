@@ -11,7 +11,8 @@
   - T-002 (Medium): server-supplied `Retry-After` (header + `additional_data`) clamped
     to 30 s; negative/non-numeric values fall back to the client backoff.
   - T-004/T-003: first CI pipeline (`.github/workflows/ci.yml` — format, compile
-    warnings-as-errors, tests, `mix hex.audit`, 2-entry Elixir/OTP matrix).
+    warnings-as-errors, tests, `mix hex.audit`, 3-entry Elixir/OTP matrix:
+    1.15.8/OTP 26, 1.18.4/OTP 27, 1.20.4/OTP 29).
   - T-005 (Low): pagination failure messages carry a shape description only, never
     response fragments.
   - T-008 (Medium, accepted): `base_url`/app-env tampering redirects the bearer.

@@ -1,7 +1,8 @@
 # `lib/` — Module Detail
 
-All source lives under `lib/noizu/notion/`. One flat module namespace, no supervision
-tree, no processes started by the library.
+Source lives under `lib/noizu/` — the facade at `lib/noizu/notion.ex` and twelve modules
+in `lib/noizu/notion/`. One flat module namespace, no supervision tree, no processes
+started by the library.
 
 ```
 lib/noizu/

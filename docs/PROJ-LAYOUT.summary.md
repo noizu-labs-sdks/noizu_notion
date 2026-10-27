@@ -9,7 +9,9 @@ noizu_notion/
 ├── test/                       # Req.Test-stubbed suite, no network
 │   ├── noizu/                  # notion_test + request/error/pagination tests
 │   └── support/testing.ex      # Plug-stub helpers + fixtures
-├── docs/                       # API-CONTRACT, PROJ-LAYOUT(+summary), PROJ-ARCH, THREAT-MODEL, layout/
+├── docs/                       # API-CONTRACT, PROJ-{LAYOUT,ARCH,SCHEMA,THREAT-MODEL}(+summary), arch/, layout/, threats/
+├── .meta/pointers.yaml         # Doc-pointer store (tool-written)
+├── .github/workflows/ci.yml    # CI: format, compile, test, hex.audit
 ├── .formatter.exs              # mix format config
 ├── .gitignore                  # _build/, deps/, doc/, cover/, tarballs
 ├── mix.exs                     # :noizu_notion, deps: req ~> 0.7, jason ~> 1.4

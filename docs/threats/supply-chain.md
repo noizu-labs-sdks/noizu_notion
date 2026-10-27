@@ -35,9 +35,10 @@ config gates lockfile drift yet. Reviewed, deliberate bumps remain the second co
 
 `.github/workflows/ci.yml` now gates every push and PR against `develop`, `stage`, and
 `main`: `mix deps.get`, `mix format --check-formatted`, `mix compile --warnings-as-errors`,
-`mix test`, and `mix hex.audit`, on a two-entry matrix (Elixir 1.20.1/OTP 27 — the lowest
-supported pair, since `mix.exs` requires `~> 1.20` which needs OTP 27+ — and
-Elixir 1.20.4/OTP 29), with `deps`/`_build` cached and action versions pinned to majors.
+`mix test`, and `mix hex.audit`, on a three-entry matrix (Elixir 1.15.8/OTP 26 — the
+supported floor, since `mix.exs` requires `~> 1.15` and every locked dep also declares
+`~> 1.15` — plus 1.18.4/OTP 27 and 1.20.4/OTP 29), with `deps`/`_build` cached and action
+versions pinned to majors.
 For a credential-handling library the test suite is also the security regression net
 (atom-safety, filter_properties encoding, retry clamping, token redaction are byte-exact
 assertions) — it now runs on every push.

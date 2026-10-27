@@ -60,7 +60,8 @@ graph TB
 | Resource modules (8) | One module per Notion object: Pages, Databases, DataSources, Blocks, Users, Search, Comments, FileUploads. |
 
 → *Components ↔ directories: see [PROJ-LAYOUT.md](PROJ-LAYOUT.md) and
-[layout/lib.md](layout/lib.md)*
+[layout/lib.md](layout/lib.md); shapes of the config, request, envelope, and fixture data:
+[PROJ-SCHEMA.md](PROJ-SCHEMA.md)*
 
 ## Request Lifecycle
 
@@ -123,12 +124,13 @@ the raw `query/3` envelope (`request_status`).
 
 | Layer | Choice |
 |---|---|
-| Language | Elixir `~> 1.20`, no framework |
+| Language | Elixir `~> 1.15` (floor), no framework; CI covers 1.15.8/OTP 26, 1.18.4/OTP 27, 1.20.4/OTP 29 |
 | HTTP | `Req ~> 0.7` (JSON + multipart) |
 | JSON | `Jason ~> 1.4` (decode fallback + encode in tests) |
 | Test | Mix test + `Req.Test` plugs + `Plug ~> 1.16` (test-only); no network, no real tokens |
 | Docs | `ex_doc ~> 0.37` (dev-only) |
-| Package | Hex `noizu_notion` v0.1.0, MIT |
+| CI | `.github/workflows/ci.yml` — format check, `compile --warnings-as-errors`, `mix test`, `mix hex.audit` |
+| Package | Hex `noizu_notion` v0.1.0, MIT (`github.com/noizu-labs-sdks/noizu_notion`) |
 
 ## Security Posture
 

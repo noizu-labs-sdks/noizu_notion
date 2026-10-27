@@ -20,8 +20,10 @@
 - **Key decisions:** DI client over globals (testability via `Req.Test`, multi-token);
   library-owned retry; `Req ~> 0.7` floor (multipart `form_multipart`); out of scope:
   OAuth flow, webhooks, views/admin API, object hydration.
-- **Stack:** Elixir ~> 1.20, Req, Jason; test-only Plug; ex_doc dev-only; Hex package,
-  MIT.
+- **Stack:** Elixir `~> 1.15` floor (CI: 1.15.8/OTP 26, 1.18.4/OTP 27, 1.20.4/OTP 29),
+  Req, Jason; test-only Plug; ex_doc dev-only; CI format/compile/test/`hex.audit`;
+  Hex package, MIT.
 
 → Full detail: [PROJ-ARCH.md](PROJ-ARCH.md) ·
-[arch/request-lifecycle.md](arch/request-lifecycle.md) · [API-CONTRACT.md](API-CONTRACT.md)
+[arch/request-lifecycle.md](arch/request-lifecycle.md) · [API-CONTRACT.md](API-CONTRACT.md) ·
+[PROJ-SCHEMA.md](PROJ-SCHEMA.md)
