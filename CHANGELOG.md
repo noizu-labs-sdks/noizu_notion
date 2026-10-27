@@ -2,6 +2,9 @@
 
 All notable changes to this project are documented in this file.
 
+## 2026-10-28
+- docs: add AGENT-README.md (agent orientation)
+
 ## Unreleased
 
 ### Fixed
